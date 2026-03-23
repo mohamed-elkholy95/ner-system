@@ -17,7 +17,27 @@ for d in [DATA_DIR, DATA_DIR / "raw", MODEL_DIR, OUTPUT_DIR, LOG_DIR]:
 
 RANDOM_SEED = 42
 
+# BIO (Beginning-Inside-Outside) tagging scheme:
+#   B-<TYPE>  = first token of a named entity of type <TYPE>
+#   I-<TYPE>  = continuation token inside the same entity
+#   O         = token outside any entity
+#
+# Example:  "John Smith works at Google"
+#   Tags:   B-PER I-PER   O     O  B-ORG
+#
+# Why BIO over IO? The B- prefix lets us distinguish adjacent entities of
+# the same type. Without it, "John Smith Sarah Lee" would be one PER span.
 NER_TAGS = ["O", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "B-MISC", "I-MISC", "B-DATE", "I-DATE"]
+
+# Human-readable descriptions for each entity type, useful for documentation
+# and UI tooltips.
+ENTITY_DESCRIPTIONS: Dict[str, str] = {
+    "PER": "Person — names of individuals (e.g., 'John Smith', 'Dr. Maria Garcia')",
+    "ORG": "Organization — companies, institutions, agencies (e.g., 'Google', 'United Nations')",
+    "LOC": "Location — geographic places (e.g., 'New York', 'Silicon Valley')",
+    "MISC": "Miscellaneous — nationalities, events, works of art that don't fit other types",
+    "DATE": "Date — temporal expressions (e.g., 'January 2024', 'last week')",
+}
 
 TAG_COLORS = {
     "PER": "#1f77b4", "ORG": "#ff7f0e", "LOC": "#2ca02c",
