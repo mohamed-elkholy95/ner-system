@@ -1,4 +1,20 @@
-"""Synthetic NER data generation."""
+"""Synthetic NER data generation.
+
+Generates labeled NER training data using templates and filler phrases.
+This approach is useful when:
+  - Real annotated data is expensive or unavailable
+  - You need a quick baseline before investing in annotation
+  - Testing the pipeline end-to-end before real data arrives
+
+Limitations of synthetic data (vs real annotated corpora like CoNLL-2003):
+  - Unrealistic sentence structures (templates are repetitive)
+  - Limited entity variation (only the entities we define)
+  - No ambiguity (real text has "Apple" = company vs fruit)
+  - No nested entities ("Bank of America" = ORG containing LOC)
+
+For production systems, combine synthetic data with transfer learning
+(pre-trained models fine-tuned on small real datasets).
+"""
 import logging
 from typing import Dict, List, Tuple
 
