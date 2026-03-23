@@ -84,27 +84,80 @@ class TagEncoder:
         return self._tag2id.get("O", 0)
 
 
+def word_shape(token: str) -> str:
+    """Map a token to its word shape pattern.
+
+    Word shape collapses characters into categories:
+      - uppercase letter → 'X'
+      - lowercase letter → 'x'
+      - digit → 'd'
+      - other → itself
+
+    Consecutive identical categories are collapsed to reduce length.
+
+    Examples:
+        "John"     → "Xxxx"
+        "McDonald" → "XxXxxxx"
+        "2024-01"  → "dddd-dd"
+        "U.S.A."   → "X.X.X."
+
+    This is a classic NER feature — the shape of a word reveals a lot
+    about its entity type without knowing the specific word.
+    """
+    shape_chars = []
+    for ch in token:
+        if ch.isupper():
+            shape_chars.append("X")
+        elif ch.islower():
+            shape_chars.append("x")
+        elif ch.isdigit():
+            shape_chars.append("d")
+        else:
+            shape_chars.append(ch)
+    return "".join(shape_chars)
+
+
 def extract_features(tokens: List[str], window: int = 2) -> np.ndarray:
-    """Extract word-level features (suffix, shape, length).
+    """Extract word-level features for each token.
+
+    Features per token (10 total):
+      0: token length
+      1: starts with uppercase (title case → likely proper noun)
+      2: all uppercase (acronyms like 'NASA', 'IBM')
+      3: all digits (years, IDs, quantities)
+      4: suffix length (morphological signal)
+      5: ends with uppercase
+      6: contains hyphen (hyphenated names, compound words)
+      7: contains digit (mixed alphanumeric like 'COVID-19')
+      8: all alphabetic (vs punctuation/mixed)
+      9: ratio of uppercase chars (higher → more likely entity)
 
     Args:
         tokens: Token list.
-        window: Context window size.
+        window: Context window size (reserved for future use).
 
     Returns:
-        Feature array (n_tokens, n_features).
+        Feature array of shape (n_tokens, 10).
     """
     features = []
     for i, tok in enumerate(tokens):
+        if not tok:
+            features.append([0.0] * 10)
+            continue
+        upper_ratio = sum(1 for c in tok if c.isupper()) / len(tok) if tok else 0.0
         f = [
             float(len(tok)),
-            float(tok[0].isupper() if tok else 0),
-            float(tok.isupper() if tok else 0),
-            float(tok.isdigit() if tok else 0),
+            float(tok[0].isupper()),
+            float(tok.isupper()),
+            float(tok.isdigit()),
             float(len(tok[-3:]) if len(tok) >= 3 else len(tok)),
-            float(tok[-1].isupper() if tok else 0),
+            float(tok[-1].isupper()),
+            float("-" in tok),
+            float(any(c.isdigit() for c in tok)),
+            float(tok.isalpha()),
+            round(upper_ratio, 4),
         ]
         features.append(f)
     if not features:
-        return np.empty((0, 6))
+        return np.empty((0, 10))
     return np.array(features, dtype=np.float64)
